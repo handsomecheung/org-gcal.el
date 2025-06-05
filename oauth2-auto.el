@@ -144,7 +144,7 @@ from PLIST if non-nil.  The return value is intended to be stored in plstore."
   :group 'oauth2-auto
   :type 'file)
 
-; TODO remove cache or invalidate it properly when other programs write to disk
+                                        ; TODO remove cache or invalidate it properly when other programs write to disk
 (defvar oauth2-auto--plstore-cache
   (make-hash-table :test 'equal)
   "Cache the values written to and read from the plstore.")
@@ -198,7 +198,7 @@ fix https://github.com/rhaps0dy/emacs-oauth2-auto/issues/6."
   "Read the data for USERNAME and PROVIDER from the cache, else from plstore.
 Cache data if a miss occurs."
   (let ((id (oauth2-auto--compute-id username provider)))
-    ; Assume cache is invalidated. FIXME
+                                        ; Assume cache is invalidated. FIXME
     (or nil ;(gethash id oauth2-auto--plstore-cache)
         (let ((plstore (plstore-open oauth2-auto-plstore)))
           (unwind-protect
@@ -213,13 +213,13 @@ Cache data if a miss occurs."
 
 (aio-defun oauth2-auto-plist (username provider)
   "Returns a 'oauth2-token structure for USERNAME and PROVIDER."
-  ; Check the plstore for the requested username and provider
+                                        ; Check the plstore for the requested username and provider
   (let ((plist (oauth2-auto--plstore-read username provider)))
     (if (not (oauth2-auto--plist-needs-refreshing plist))
-        ; If expiration time is found and hasn't happened yet
+                                        ; If expiration time is found and hasn't happened yet
         plist
-      ; Otherwise refresh or authenticate the user, and write the result to
-      ; plstore.
+                                        ; Otherwise refresh or authenticate the user, and write the result to
+                                        ; plstore.
       (oauth2-auto--plstore-write
        username provider
        (aio-await
@@ -236,9 +236,9 @@ Cache data if a miss occurs."
 (defun oauth2-auto-poll-promise (promise)
   "Synchronously wait for PROMISE, polling every SECONDS seconds."
   (let ((seconds 3))
-   (while (null (aio-result promise))
-     (sleep-for seconds))
-   (funcall (aio-result promise))))
+    (while (null (aio-result promise))
+      (sleep-for seconds))
+    (funcall (aio-result promise))))
 
 ;;;###autoload
 (defun oauth2-auto-plist-sync (username provider)
@@ -266,8 +266,8 @@ For USERNAME and PROVIDER, see."
     (when (not provider-info)
       (error "oauth2-auto: Unknown provider: %s" provider))
     (dolist (key '(client_id client_secret))
-        (when (equal "" (cdr (assoc key provider-info)))
-         (error "oauth2-auto: Provider %s was requested but has no `%s' specified" provider key)))
+      (when (equal "" (cdr (assoc key provider-info)))
+        (error "oauth2-auto: Provider %s was requested but has no `%s' specified" provider key)))
     provider-info))
 
 (defun oauth2-auto--urlify-request (alist)
@@ -317,11 +317,11 @@ Also send data in EXTRA-ALIST."
          (response (with-current-buffer response-buffer
                      (prog1 (oauth2-auto--request-access-parse)
                        (kill-buffer (current-buffer))))))
-      (cond
-       ((assoc 'error response)
-        (error "OAuth error.  Request: %s.  Response: %s"
-               (pp-to-string data-alist) (pp-to-string response)))
-       (t response))))
+    (cond
+     ((assoc 'error response)
+      (error "OAuth error.  Request: %s.  Response: %s"
+             (pp-to-string data-alist) (pp-to-string response)))
+     (t response))))
 
 
 ;; Barebones HTTP server to receive the tokens
@@ -421,7 +421,7 @@ If QUIET is non-nil, suppress alerts."
                                    (cadr (process-contact server-proc))))
                (redirect-uri-elt (cons 'redirect_uri server-url))
 
-               ; Craft a request
+                                        ; Craft a request
                (very-extra-alist (cons redirect-uri-elt extra-alist))
                ;; (very-extra-alist extra-alist)
                ;; almost same code as beginning of `oauth2-auto--request'
@@ -431,7 +431,7 @@ If QUIET is non-nil, suppress alerts."
                (data (oauth2-auto--urlify-request data-alist))
 
                (url (cdr (assoc url-key provider-info)))
-               ; open authorization URL in browser
+                                        ; open authorization URL in browser
                (response-alist nil))
           (browse-url (concat url "?" data))
 
@@ -439,14 +439,14 @@ If QUIET is non-nil, suppress alerts."
             (alert "Log in to your account for Emacs in your browser window"
                    :title "Emacs OAuth2 login"
                    :category 'oauth2-auto))
-          ; Wait until we get a reply containing 'code and 'state.
+                                        ; Wait until we get a reply containing 'code and 'state.
           (while (not response-alist)
             (setq response-alist
                   (apply #'oauth2-auto--httpd-filter (aio-chain server-promise))))
 
-          ; return the response, with the 'redirect_uri
+                                        ; return the response, with the 'redirect_uri
           (cons redirect-uri-elt response-alist))
-      ; Always kill server-proc
+                                        ; Always kill server-proc
       (delete-process server-proc))))
 
 (defconst oauth2-auto--url-unreserved
@@ -456,12 +456,12 @@ If QUIET is non-nil, suppress alerts."
 (defun oauth2-auto--random-string (len)
   "Return a random string of length LEN.
 Uses only characters valid in the output of `base64url-encode-string'."
-  ; inspired by http://xahlee.info/emacs/emacs/elisp_insert_random_number_string.html
+                                        ; inspired by http://xahlee.info/emacs/emacs/elisp_insert_random_number_string.html
   (let ((rand-len (length oauth2-auto--url-unreserved)))
-   (with-temp-buffer
-     (dotimes (_l len)
-       (insert (elt oauth2-auto--url-unreserved (random rand-len))))
-     (buffer-string))))
+    (with-temp-buffer
+      (dotimes (_l len)
+        (insert (elt oauth2-auto--url-unreserved (random rand-len))))
+      (buffer-string))))
 
 (defun oauth2-auto--base64url-encode-string (string &optional no-pad)
   "Package-local version of ‘base64url-encode-string’.
@@ -493,9 +493,9 @@ For USERNAME, PROVIDER, and PLIST see ‘oauth2-auto-refresh’."
   (let* ((promise (oauth2-auto-refresh username provider plist))
          (result (aio-await (aio-catch promise))))
     (if (eq (car result) :success)
-        ; If succeeded, return the result
+                                        ; If succeeded, return the result
         (cdr result)
-      ; If failed, authenticate instead
+                                        ; If failed, authenticate instead
       (aio-await (oauth2-auto-authenticate username provider)))))
 
 (aio-defun oauth2-auto-authenticate (username provider)
@@ -518,8 +518,8 @@ For USERNAME, PROVIDER, and PLIST see ‘oauth2-auto-refresh’."
          (redirect-uri (cdr (assoc 'redirect_uri response)))
          (code (cdr (assoc 'code response))))
 
-    ; Verify that the return state matches.
-    ; https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-auth-code-flow#successful-response
+                                        ; Verify that the return state matches.
+                                        ; https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-auth-code-flow#successful-response
     (unless (equal state response-state)
       (error
        "State sent and returned do not match - security risk: state=%s response_state=%s"
@@ -543,7 +543,7 @@ Return the refreshed plist."
     (unless refresh-token
       (error "Refresh token is nil in plist=%s" (pp-to-string plist)))
 
-    ; Refresh an oauth2-token
+                                        ; Refresh an oauth2-token
     (oauth2-auto--make-plist
      (aio-await (oauth2-auto--request
                  provider 'token_url
