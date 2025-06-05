@@ -400,9 +400,9 @@ INPUT is the raw HTTP request."
 
 (aio-defun oauth2-auto--browser-request (provider url-key data-keys extra-alist &optional quiet)
   "Open browser for the OAuth2 PROVIDER.
-Browser is opened at url and parameters given by taking URL-KEY and DATA-KEYS
-from the data of the PROVIDER, and adding EXTRA-ALIST.  Then we listen to the
-redirect response and return it.
+Instead of opening browser, display the authorization URL and wait for user to input the code.
+Browser URL is constructed from url and parameters given by taking URL-KEY and DATA-KEYS
+from the data of the PROVIDER, and adding EXTRA-ALIST.
 
 If QUIET is non-nil, suppress alerts."
   (let* (; First open listener to some port in localhost
@@ -431,20 +431,24 @@ If QUIET is non-nil, suppress alerts."
                (data (oauth2-auto--urlify-request data-alist))
 
                (url (cdr (assoc url-key provider-info)))
-                                        ; open authorization URL in browser
+               (auth-url (concat url "?" data))
                (response-alist nil))
-          (browse-url (concat url "?" data))
 
+          ;; Instead of opening browser, show URL and wait for code
           (unless quiet
-            (alert "Log in to your account for Emacs in your browser window"
+            (alert (format "Please visit this URL to authorize:\n%s\n\nAfter authorization, copy the 'code' parameter from the redirect URL and paste it below:"
+                           auth-url)
                    :title "Emacs OAuth2 login"
                    :category 'oauth2-auto))
-                                        ; Wait until we get a reply containing 'code and 'state.
-          (while (not response-alist)
-            (setq response-alist
-                  (apply #'oauth2-auto--httpd-filter (aio-chain server-promise))))
 
-                                        ; return the response, with the 'redirect_uri
+          ;; Wait for user to input the code
+          (let ((code (read-string (format "URL: %s\nEnter authorization code: " auth-url))))
+            (setq response-alist
+                  (list (cons 'code code)
+                        (cons 'redirect_uri server-url)
+                        (cons 'state (cdr (assoc 'state data-alist))))))
+
+          ;; return the response, with the 'redirect_uri
           (cons redirect-uri-elt response-alist))
                                         ; Always kill server-proc
       (delete-process server-proc))))
